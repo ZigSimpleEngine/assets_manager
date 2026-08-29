@@ -23,6 +23,20 @@ pub const Config = struct {
     descriptors: []const *const Descriptor,
 };
 
+pub fn bakeAssetsTreeToCodeWithIo(
+    gpa: std.mem.Allocator,
+    io: std.Io,
+    path_to_root_node: []const u8,
+    assets_tree_root: *Node,
+    depth: u32,
+    config: Config,
+) ![]u8 {
+    var dummy: std.process.Init = undefined;
+    dummy.gpa = gpa;
+    dummy.io = io;
+    return bakeAssetsTreeToCode(dummy, path_to_root_node, assets_tree_root, depth, config);
+}
+
 pub fn bakeAssetsTreeToCode(
     init: std.process.Init,
     path_to_root_node: []const u8,

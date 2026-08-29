@@ -118,10 +118,7 @@ pub const Node = struct {
     }
 };
 
-pub fn create(init: std.process.Init, target_dir: []const u8) !*Node {
-    const io = init.io;
-    const gpa = init.gpa;
-
+pub fn createWithIo(gpa: std.mem.Allocator, io: std.Io, target_dir: []const u8) !*Node {
     var dir = try std.Io.Dir.cwd().openDir(io, target_dir, .{
         .iterate = true,
     });
@@ -154,4 +151,8 @@ pub fn create(init: std.process.Init, target_dir: []const u8) !*Node {
     }
 
     return root;
+}
+
+pub fn create(init: std.process.Init, target_dir: []const u8) !*Node {
+    return createWithIo(init.gpa, init.io, target_dir);
 }
