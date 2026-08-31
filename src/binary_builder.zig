@@ -92,7 +92,7 @@ fn bakeBinaryTreeToCode(
                 }
             }
             if (suitable) |desc| {
-                const code = try desc.getLoaderCode(init, data);
+                const code = try desc.getCode(init, data);
                 defer gpa.free(code);
                 try str_list.appendSlice(gpa, code);
             } else {
@@ -127,7 +127,7 @@ fn bakeBinaryTreeToCode(
                     .offset = cur_offset,
                     .size = cur_size,
                 };
-                const code = try desc.getLoaderCode(init, d);
+                const code = try desc.getCode(init, d);
                 defer gpa.free(code);
                 try str_list.appendSlice(gpa, code);
             } else {
@@ -137,6 +137,16 @@ fn bakeBinaryTreeToCode(
     }
 
     return str_list.toOwnedSlice(gpa);
+}
+
+const binary_header = "const std = @import(\"std\");\nconst Asset = @import(\"assets_manager\").asset_loader.Asset;\n\n";
+
+fn prependHeader(gpa: std.mem.Allocator, code: []const u8) ![]u8 {
+    if (code.len >= binary_header.len and std.mem.startsWith(u8, code, binary_header)) return gpa.dupe(u8, code);
+    const out = try gpa.alloc(u8, binary_header.len + code.len);
+    @memcpy(out[0..binary_header.len], binary_header);
+    @memcpy(out[binary_header.len..], code);
+    return out;
 }
 
 pub fn createBinaryBundleFromAssets(
@@ -175,7 +185,7 @@ pub fn createBinaryBundleFromAssets(
     defer binary.deinit(gpa);
     var offset: usize = 0;
 
-    const code = try bakeBinaryTreeToCode(
+    const raw_code = try bakeBinaryTreeToCode(
         init,
         relative_path_formated,
         config.bundle_path,
@@ -185,6 +195,8 @@ pub fn createBinaryBundleFromAssets(
         &binary,
         &offset,
     );
+    defer gpa.free(raw_code);
+    const code = try prependHeader(gpa, raw_code);
     defer gpa.free(code);
 
     try writeBinFile(init, bin_output_path, binary.items);
@@ -221,7 +233,10 @@ pub fn bakeBinaryBundleToMemoryWithIo(
     var binary: std.ArrayList(u8) = .empty;
     errdefer binary.deinit(gpa);
     var offset: usize = 0;
-    const code = try bakeBinaryTreeToCodeWithIo(gpa, io, relative_path_formated, config.bundle_path, root, 0, config, &binary, &offset);
+    const raw_code = try bakeBinaryTreeToCodeWithIo(gpa, io, relative_path_formated, config.bundle_path, root, 0, config, &binary, &offset);
+    errdefer gpa.free(raw_code);
+    const code = try prependHeader(gpa, raw_code);
+    gpa.free(raw_code);
     errdefer gpa.free(code);
     const bin = try binary.toOwnedSlice(gpa);
     return .{ .code = code, .bin = bin };

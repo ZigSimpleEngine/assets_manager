@@ -211,7 +211,7 @@ fn generateBinarySync(b: *std.Build, assets_path: []const u8, relative_prefix: [
             break :blk buf[0..total];
         };
         defer gpa.free(data);
-        // Generate code for single asset as top-level const
+        // Generate code for single asset as top-level const with header alias
         const basename = std.fs.path.basename(assets_path);
         const ident = try @import("text_utils.zig").filenameToIdentifier(gpa, basename);
         defer gpa.free(ident);
@@ -226,7 +226,10 @@ fn generateBinarySync(b: *std.Build, assets_path: []const u8, relative_prefix: [
                 else => try escaped.append(gpa, ch),
             }
         }
-        const code = try std.fmt.allocPrint(gpa, "pub const {s} = @import(\"assets_manager\").asset_loader.Asset(\"{s}\", 0, {d});\n", .{ ident, escaped.items, data.len });
+        const header = "const Asset = @import(\"assets_manager\").asset_loader.Asset;\n\n";
+        const body = try std.fmt.allocPrint(gpa, "pub const {s} = Asset(u8, \"{s}\", 0, {d});\n", .{ ident, escaped.items, data.len });
+        defer gpa.free(body);
+        const code = try std.fmt.allocPrint(gpa, "{s}{s}", .{ header, body });
         const bin = try gpa.dupe(u8, data);
         return .{ .code = code, .bin = bin };
     }
