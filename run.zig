@@ -1,20 +1,27 @@
+/// Standard library used for the `std.process.Init` entry protocol.
 const std = @import("std");
-const print = std.debug.print;
-const mem = std.mem;
-const assets_builder = @import("src/assets_builder.zig");
-const assets_tree = @import("src/assets_tree.zig");
+/// Builder backend used by this dev tool.
+/// Only the `embed` branch is exercised here to regenerate `generated/src.zig` from the working directory.
+const builders = @import("src/builders.zig");
+/// Descriptor family used by this dev tool.
+/// Provides `EmbedFileDescriptor`, `EmbedDirectoryDescriptor` and the `abstract.Descriptor` vtable type below.
 const descriptors = @import("src/descriptors.zig");
 
+/// Developer entry point that regenerates the checked-in `generated/src.zig`.
+/// Builds a two-entry descriptor table (file plus directory), then calls
+/// `builders.embed.createCodeFileFromAssets` over `"."` so local runs refresh the sample output.
+/// Not part of the library API; downstream projects use `build_steps` instead.
+/// - `init` - process init carrying the allocator and threaded IO needed for directory walking and file output.
 pub fn main(init: std.process.Init) !void {
-    var file_descriptor: descriptors.ZigEmbedFileDescriptor = .{};
-    var dir_descriptor: descriptors.ZigDirectoryDescriptor = .{};
+    var file_descriptor: descriptors.embed.EmbedFileDescriptor = .{};
+    var dir_descriptor: descriptors.embed.EmbedDirectoryDescriptor = .{};
 
-    const descriptors_array = [_]*const descriptors.Descriptor{
+    const descriptors_array = [_]*const descriptors.embed.abstract.Descriptor{
         &file_descriptor.descriptor(),
         &dir_descriptor.descriptor(),
     };
 
-    try assets_builder.createCodeFileFromAssets(init, "generated/src.zig", ".", .{
+    try builders.embed.createCodeFileFromAssets(init, "generated/src.zig", ".", .{
         .print_results = false,
         .descriptors = &descriptors_array,
     });
