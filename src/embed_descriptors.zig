@@ -7,21 +7,21 @@ const text_utils = @import("text_utils.zig");
 const Node = @import("assets_tree.zig").Node;
 
 /// Vtable namespace for the embed branch.
-/// Groups the `Descriptor` interface so builders and build steps depend on one stable type
+/// Groups the `EmbedDescriptor` interface so builders and build steps depend on one stable type
 /// while file/directory implementations stay side by side in this file.
 pub const abstract = struct {
     /// Type-erased code generator turning one `Node` into Zig source via `@embedFile` or a `struct`.
     /// Backs `embed_builder` codegen: builders call `isSuitableData` to pick a handler,
     /// then `getCode` to render it. Concrete instances come from `EmbedFileDescriptor.descriptor`
     /// and `EmbedDirectoryDescriptor.descriptor` in `run.zig` and build-step configs.
-    pub const Descriptor = struct {
+    pub const EmbedDescriptor = struct {
         /// Opaque receiver holding the concrete `*EmbedFileDescriptor` or `*EmbedDirectoryDescriptor`.
         ptr: *anyopaque,
         /// Function table dispatching suitability checks and code emission to the concrete handler.
         vtable: VTable,
 
         /// Vtable selecting and rendering one asset node.
-        /// Stored per concrete descriptor and invoked through the type-erased `Descriptor` wrapper.
+        /// Stored per concrete descriptor and invoked through the type-erased `EmbedDescriptor` wrapper.
         pub const VTable = struct {
             /// Renders Zig source for one node; see `EmbedFileDescriptor.getCode` for the file shape.
             get_code: *const fn (*anyopaque, init: std.process.Init, descripting_data: Data) anyerror![]u8,
@@ -51,7 +51,7 @@ pub const abstract = struct {
         /// - `descripting_data` - node plus recursion context.
         ///
         /// Return: true when this handler owns the node.
-        pub fn isSuitableData(self: *const Descriptor, init: std.process.Init, descripting_data: Data) anyerror!bool {
+        pub fn isSuitableData(self: *const EmbedDescriptor, init: std.process.Init, descripting_data: Data) anyerror!bool {
             return self.vtable.is_suitable_data(self.ptr, init, descripting_data);
         }
 
@@ -62,7 +62,7 @@ pub const abstract = struct {
         /// - `descripting_data` - node plus recursion context.
         ///
         /// Return: owned code snippet; caller must free it.
-        pub fn getCode(self: *const Descriptor, init: std.process.Init, descripting_data: Data) anyerror![]u8 {
+        pub fn getCode(self: *const EmbedDescriptor, init: std.process.Init, descripting_data: Data) anyerror![]u8 {
             return self.vtable.get_code(self.ptr, init, descripting_data);
         }
     };
@@ -74,12 +74,12 @@ pub const EmbedFileDescriptor = struct {
     /// Spaces emitted per tree depth for the generated constant.
     spaces_per_depth: usize = 4,
 
-    /// Binds this file handler to the type-erased `abstract.Descriptor` interface.
+    /// Binds this file handler to the type-erased `abstract.EmbedDescriptor` interface.
     /// The returned value is stored in descriptor tables consumed by `embed_builder`.
     /// - `self` - live file handler; must outlive the bake because only the pointer is captured.
     ///
     /// Return: vtable view forwarding to `isSuitableData` and `getCode` below.
-    pub fn descriptor(self: *EmbedFileDescriptor) abstract.Descriptor {
+    pub fn descriptor(self: *EmbedFileDescriptor) abstract.EmbedDescriptor {
         return .{
             .ptr = self,
             .vtable = .{
@@ -95,7 +95,7 @@ pub const EmbedFileDescriptor = struct {
     /// - `descripting_data` - node plus recursion context; `node.kind` decides the answer.
     ///
     /// Return: true exactly when `node.kind == .file`.
-    pub fn isSuitableData(ptr: *anyopaque, init: std.process.Init, descripting_data: abstract.Descriptor.Data) anyerror!bool {
+    pub fn isSuitableData(ptr: *anyopaque, init: std.process.Init, descripting_data: abstract.EmbedDescriptor.Data) anyerror!bool {
         _ = ptr;
         _ = init;
         const node = descripting_data.node;
@@ -110,7 +110,7 @@ pub const EmbedFileDescriptor = struct {
     /// - `descripting_data` - file node, depth and path prefix.
     ///
     /// Return: owned one-line constant including the trailing newline; caller must free it.
-    pub fn getCode(ptr: *anyopaque, init: std.process.Init, descripting_data: abstract.Descriptor.Data) anyerror![]u8 {
+    pub fn getCode(ptr: *anyopaque, init: std.process.Init, descripting_data: abstract.EmbedDescriptor.Data) anyerror![]u8 {
         const self: *EmbedFileDescriptor = @ptrCast(@alignCast(ptr));
         const node = descripting_data.node;
         const depth = descripting_data.depth;
@@ -143,12 +143,12 @@ pub const EmbedDirectoryDescriptor = struct {
     /// Spaces emitted per tree depth for the `struct` wrapper and its children.
     spaces_per_depth: usize = 4,
 
-    /// Binds this directory handler to the type-erased `abstract.Descriptor` interface.
+    /// Binds this directory handler to the type-erased `abstract.EmbedDescriptor` interface.
     /// Stored next to the file descriptor in every embed descriptor table.
     /// - `self` - live directory handler; must outlive the bake.
     ///
     /// Return: vtable view forwarding to `isSuitableData` and `getCode` below.
-    pub fn descriptor(self: *EmbedDirectoryDescriptor) abstract.Descriptor {
+    pub fn descriptor(self: *EmbedDirectoryDescriptor) abstract.EmbedDescriptor {
         return .{
             .ptr = self,
             .vtable = .{
@@ -164,7 +164,7 @@ pub const EmbedDirectoryDescriptor = struct {
     /// - `descripting_data` - node plus recursion context; `node.kind` decides the answer.
     ///
     /// Return: true exactly when `node.kind == .directory`.
-    pub fn isSuitableData(ptr: *anyopaque, init: std.process.Init, descripting_data: abstract.Descriptor.Data) anyerror!bool {
+    pub fn isSuitableData(ptr: *anyopaque, init: std.process.Init, descripting_data: abstract.EmbedDescriptor.Data) anyerror!bool {
         _ = ptr;
         _ = init;
         const node = descripting_data.node;
@@ -179,7 +179,7 @@ pub const EmbedDirectoryDescriptor = struct {
     /// - `descripting_data` - directory node, depth, child `content` and sibling index.
     ///
     /// Return: owned struct source including the trailing newline; caller must free it.
-    pub fn getCode(ptr: *anyopaque, init: std.process.Init, descripting_data: abstract.Descriptor.Data) anyerror![]u8 {
+    pub fn getCode(ptr: *anyopaque, init: std.process.Init, descripting_data: abstract.EmbedDescriptor.Data) anyerror![]u8 {
         const self: *EmbedDirectoryDescriptor = @ptrCast(@alignCast(ptr));
         const node = descripting_data.node;
         const depth = descripting_data.depth;

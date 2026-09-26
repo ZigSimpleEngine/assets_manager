@@ -7,7 +7,7 @@ const assets_tree = @import("assets_tree.zig");
 const Node = assets_tree.Node;
 /// Vtable type implemented by `EmbedFileDescriptor` and `EmbedDirectoryDescriptor`.
 /// Selected per node via `isSuitableData` and invoked via `getCode` during the recursive walk.
-const Descriptor = @import("embed_descriptors.zig").abstract.Descriptor;
+const EmbedDescriptor = @import("embed_descriptors.zig").abstract.EmbedDescriptor;
 
 /// Codegen options shared by the filesystem and in-memory embed paths.
 /// Carries the descriptor table plus a debug-print toggle used by `createCodeFileFromAssets`.
@@ -16,7 +16,7 @@ pub const Config = struct {
     print_results: bool = false,
     /// Ordered vtable table consulted for every node; first `isSuitableData` hit wins.
     /// Typically file plus directory descriptors from `descriptors.embed`.
-    descriptors: []const *const Descriptor,
+    descriptors: []const *const EmbedDescriptor,
 };
 
 /// Writes generated Zig source to disk, creating parent directories as needed.
@@ -59,7 +59,7 @@ pub fn bakeAssetsTreeToCodeWithIo(gpa: std.mem.Allocator, io: std.Io, path_to_ro
 
 /// Recursively renders a `Node` hierarchy as Zig source.
 /// Sorts children with `Node.lessThan` for deterministic output, recurses into directories,
-/// then delegates each node to the first suitable `Descriptor`. Backs every embed entry point.
+/// then delegates each node to the first suitable `EmbedDescriptor`. Backs every embed entry point.
 /// - `init` - process init carrying allocator and IO.
 /// - `path_to_root_node` - prefix for `@embedFile` paths, computed from output versus assets locations.
 /// - `assets_tree_root` - subtree being rendered at this recursion level.
@@ -93,7 +93,7 @@ pub fn bakeAssetsTreeToCode(init: std.process.Init, path_to_root_node: []const u
             );
         }
 
-        const descripting_data: Descriptor.Data = .{
+        const descripting_data: EmbedDescriptor.Data = .{
             .id_in_parent = @intCast(i),
             .depth = depth,
             .node = node,
@@ -101,7 +101,7 @@ pub fn bakeAssetsTreeToCode(init: std.process.Init, path_to_root_node: []const u
             .path_to_root_node = path_to_root_node,
         };
 
-        var suitable_descriptor: ?*const Descriptor = null;
+        var suitable_descriptor: ?*const EmbedDescriptor = null;
         for (config.descriptors) |descriptor| {
             if (try descriptor.isSuitableData(init, descripting_data)) {
                 suitable_descriptor = descriptor;
@@ -171,7 +171,7 @@ pub fn createCodeFileFromAssets(init: std.process.Init, file_path: []const u8, a
 /// - `descriptors` - ordered descriptor table consulted per node.
 ///
 /// Return: owned Zig source; caller must free it.
-pub fn bakeCodeToMemoryWithIo(gpa: std.mem.Allocator, io: std.Io, assets_dir: []const u8, relative_path_formated: []const u8, descriptors: []const *const Descriptor) ![]u8 {
+pub fn bakeCodeToMemoryWithIo(gpa: std.mem.Allocator, io: std.Io, assets_dir: []const u8, relative_path_formated: []const u8, descriptors: []const *const EmbedDescriptor) ![]u8 {
     var root = try assets_tree.createWithIo(gpa, io, assets_dir);
     defer root.deinitRecursively(gpa, true);
     return bakeAssetsTreeToCodeWithIo(gpa, io, relative_path_formated, root, 0, .{ .descriptors = descriptors });
@@ -185,6 +185,6 @@ pub fn bakeCodeToMemoryWithIo(gpa: std.mem.Allocator, io: std.Io, assets_dir: []
 /// - `descriptors` - ordered descriptor table consulted per node.
 ///
 /// Return: owned Zig source; caller must free it.
-pub fn bakeCodeToMemory(init: std.process.Init, assets_dir: []const u8, relative_path_formated: []const u8, descriptors: []const *const Descriptor) ![]u8 {
+pub fn bakeCodeToMemory(init: std.process.Init, assets_dir: []const u8, relative_path_formated: []const u8, descriptors: []const *const EmbedDescriptor) ![]u8 {
     return bakeCodeToMemoryWithIo(init.gpa, init.io, assets_dir, relative_path_formated, descriptors);
 }

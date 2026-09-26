@@ -3,8 +3,8 @@ const std = @import("std");
 /// Builder backend used by this dev tool.
 /// Only the `embed` branch is exercised here to regenerate `generated/src.zig` from the working directory.
 const builders = @import("src/builders.zig");
-/// Descriptor family used by this dev tool.
-/// Provides `EmbedFileDescriptor`, `EmbedDirectoryDescriptor` and the `abstract.Descriptor` vtable type below.
+/// EmbedDescriptor family used by this dev tool.
+/// Provides `EmbedFileDescriptor`, `EmbedDirectoryDescriptor` and the `abstract.EmbedDescriptor` vtable type below.
 const descriptors = @import("src/descriptors.zig");
 
 /// Developer entry point that regenerates the checked-in `generated/src.zig`.
@@ -16,7 +16,7 @@ pub fn main(init: std.process.Init) !void {
     var file_descriptor: descriptors.embed.EmbedFileDescriptor = .{};
     var dir_descriptor: descriptors.embed.EmbedDirectoryDescriptor = .{};
 
-    const descriptors_array = [_]*const descriptors.embed.abstract.Descriptor{
+    const descriptors_array = [_]*const descriptors.embed.abstract.EmbedDescriptor{
         &file_descriptor.descriptor(),
         &dir_descriptor.descriptor(),
     };

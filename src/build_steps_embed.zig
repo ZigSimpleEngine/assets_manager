@@ -6,7 +6,7 @@ const assets_tree = @import("assets_tree.zig");
 const embed_builder = @import("embed_builder.zig");
 
 /// Vtable type implemented by `EmbedFileDescriptor` and `EmbedDirectoryDescriptor`.
-const Descriptor = @import("embed_descriptors.zig").abstract.Descriptor;
+const EmbedDescriptor = @import("embed_descriptors.zig").abstract.EmbedDescriptor;
 
 /// Lazy build outputs for one embed generation.
 /// Returned by `addGeneration` so downstream steps can depend on the directory and the generated file.
@@ -30,7 +30,7 @@ pub const Config = struct {
     /// Asset file or directory relative to the build root; watched for incremental rebuilds.
     assets_path: []const u8,
     /// Ordered descriptor table consulted for every node during the bake.
-    descriptors: []const *const Descriptor,
+    descriptors: []const *const EmbedDescriptor,
 };
 
 /// Creates a WriteFiles step generating Zig source from assets.
