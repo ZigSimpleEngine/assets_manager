@@ -20,5 +20,3 @@ pub const text_utils = @import("src/text_utils.zig");
 /// Re-export of the runtime loader (`Asset`, `AssetLoader`).
 /// Referenced by generated code: binary bundles emit `Asset(u8, path, offset, size)` through this namespace.
 pub const asset_loader = @import("src/asset_loader.zig");
-
-pub const Asset = asset_loader.Asset;
