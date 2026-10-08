@@ -213,7 +213,7 @@ pub const BinaryDirectoryDescriptor = struct {
         const var_name = try text_utils.filenameToIdentifier(gpa, name);
         defer gpa.free(var_name);
 
-        return std.fmt.allocPrint(gpa, "{s}{s}pub const {s} = struct {{\n{s}{s}{s}}};\n", .{
+        return gpa.print("{s}{s}pub const {s} = struct {{\n{s}{s}{s}}};\n", .{
             if (data.id_in_parent == 0) "" else "\n",
             prefix orelse "",
             var_name,
@@ -352,6 +352,6 @@ pub const RawBinaryDescriptor = struct {
             }
         }
 
-        return std.fmt.allocPrint(gpa, "{s}pub const {s} = Asset(u8, \"{s}\", {d}, {d});\n", .{ prefix orelse "", var_name, escaped.items, data.offset, data.size });
+        return gpa.print("{s}pub const {s} = Asset(u8, \"{s}\", {d}, {d});\n", .{ prefix orelse "", var_name, escaped.items, data.offset, data.size });
     }
 };

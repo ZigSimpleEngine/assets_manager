@@ -53,7 +53,7 @@ pub fn addGeneration(b: *std.Build, options: Config) Result {
     var relative_prefix: []const u8 = "";
     var allocated: ?[]const u8 = null;
     {
-        const with_slash = std.fmt.allocPrint(b.allocator, "{s}/", .{options.assets_path}) catch "";
+        const with_slash = b.allocator.print("{s}/", .{options.assets_path}) catch "";
         allocated = with_slash;
         relative_prefix = with_slash;
     }
@@ -80,10 +80,12 @@ pub fn addGeneration(b: *std.Build, options: Config) Result {
         is_dir = true;
     } else |_| is_dir = false;
 
+    // 0.17 removed Step watch inputs; declare configure-time dependencies
+    // instead so asset changes invalidate the configuration cache.
     if (is_dir) {
-        _ = wf.step.addDirectoryWatchInput(lp) catch {};
+        b.dependOnDirectoryContents(lp);
     } else {
-        wf.step.addWatchInput(lp) catch {};
+        b.dependOnFileContents(lp);
     }
 
     return .{ .step = &wf.step, .directory = wf.getDirectory(), .file_zig = file_zig, .file_bin = file_bin, .bundle_path = options.bundle_path };
@@ -152,9 +154,9 @@ fn generateSync(b: *std.Build, assets_path: []const u8, relative_prefix: []const
             }
         }
         const header = "const Asset = @import(\"assets_manager\").asset_loader.Asset;\n\n";
-        const body = try std.fmt.allocPrint(gpa, "pub const {s} = Asset(u8, \"{s}\", 0, {d});\n", .{ ident, escaped.items, data.len });
+        const body = try gpa.print("pub const {s} = Asset(u8, \"{s}\", 0, {d});\n", .{ ident, escaped.items, data.len });
         defer gpa.free(body);
-        const code = try std.fmt.allocPrint(gpa, "{s}{s}", .{ header, body });
+        const code = try gpa.print("{s}{s}", .{ header, body });
         const bin = try gpa.dupe(u8, data);
         return .{ .code = code, .bin = bin };
     }

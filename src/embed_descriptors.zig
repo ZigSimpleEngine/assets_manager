@@ -124,7 +124,7 @@ pub const EmbedFileDescriptor = struct {
         if (node.name) |name| {
             const var_name = try text_utils.filenameToIdentifier(gpa, name);
             defer gpa.free(var_name);
-            return std.fmt.allocPrint(gpa, "{s}pub const {s} = @embedFile(\"{s}{s}\");\n", .{
+            return gpa.print("{s}pub const {s} = @embedFile(\"{s}{s}\");\n", .{
                 prefix orelse "",
                 var_name,
                 descripting_data.path_to_root_node,
@@ -195,7 +195,7 @@ pub const EmbedDirectoryDescriptor = struct {
         if (node.name) |name| {
             const var_name = try text_utils.filenameToIdentifier(gpa, name);
             defer gpa.free(var_name);
-            return std.fmt.allocPrint(gpa, "{s}{s}pub const {s} = struct {{\n{s}{s}{s}}};\n", .{
+            return gpa.print("{s}{s}pub const {s} = struct {{\n{s}{s}{s}}};\n", .{
                 if (descripting_data.id_in_parent == 0) "" else "\n",
                 prefix orelse "",
                 var_name,

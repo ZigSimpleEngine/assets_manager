@@ -58,7 +58,7 @@ pub fn createBinaryBundleFromAssets(init: std.process.Init, code_output_path: []
     if (std.fs.path.dirname(code_output_path)) |dir| {
         const rel = try std.fs.path.relativePosix(gpa, ".", dir, assets_dir);
         allocated_relative = rel;
-        const formated = try std.fmt.allocPrint(gpa, "{s}/", .{rel});
+        const formated = try gpa.print("{s}/", .{rel});
         allocated_formated = formated;
         relative_path_formated = formated;
         need_free_relative = true;

@@ -139,7 +139,7 @@ pub fn createCodeFileFromAssets(init: std.process.Init, file_path: []const u8, a
     var free_relative_path = false;
     if (std.fs.path.dirname(file_path)) |dir| {
         relative_path = try std.fs.path.relativePosix(gpa, ".", dir, assets_dir);
-        relative_path_formated = try std.fmt.allocPrint(gpa, "{s}/", .{relative_path});
+        relative_path_formated = try gpa.print("{s}/", .{relative_path});
         free_relative_path = true;
     }
 

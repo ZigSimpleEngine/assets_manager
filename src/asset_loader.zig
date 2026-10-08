@@ -3,7 +3,16 @@ const std = @import("std");
 /// C stdio (`fopen`, `fseek`, `fread`, `fclose`) for portable bundle loading.
 /// Works on desktop libc variants and on Emscripten, whose virtual FS implements the same calls,
 /// so the same bundle file only needs `--embed-file` or `--preload-file` on web.
-const c = @cImport(@cInclude("stdio.h"));
+/// Hand-written `extern` declarations (only the four symbols used here) since
+/// `@cImport` was removed in Zig 0.17.
+const c = struct {
+    pub const FILE = opaque {};
+    pub const SEEK_SET: c_int = 0;
+    pub extern "c" fn fopen(path: [*:0]const u8, mode: [*:0]const u8) ?*FILE;
+    pub extern "c" fn fclose(f: *FILE) c_int;
+    pub extern "c" fn fseek(f: *FILE, offset: c_long, whence: c_int) c_int;
+    pub extern "c" fn fread(ptr: [*]u8, size: usize, nmemb: usize, f: *FILE) usize;
+};
 
 /// Friendly facade over the `Asset` factory with intent-revealing constructor names.
 /// Used by generated code indirectly and by hand-written code that prefers `initRaw` over spelling `u8`.
