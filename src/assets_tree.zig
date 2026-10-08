@@ -186,7 +186,7 @@ pub const Node = struct {
 
             return mem.lessThan(u8, a.name.?, b.name.?);
         } else {
-            return @as(u32, @intFromEnum(a.kind)) < @as(u32, @intFromEnum(b.kind));
+            return @as(u32, @backingInt(a.kind)) < @as(u32, @backingInt(b.kind));
         }
     }
 };

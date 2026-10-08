@@ -35,7 +35,7 @@ pub const Options = struct {
     target: ?std.Build.ResolvedTarget = null,
     /// Optimization mode the `assets_manager` module is compiled with.
     /// `null` means fall back to `standardOptimizeOption` at use time.
-    optimize: ?std.builtin.OptimizeMode = null,
+    optimize: ?std.lang.Optimize = null,
 
     /// Creates the shared `assets_manager` module for a parent package graph.
     /// Uses `dependencyFromBuildZig` with `ThisBuild` so `root.zig` resolves inside this package
